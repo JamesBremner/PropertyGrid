@@ -170,10 +170,10 @@ void cContent::AddProperty( const string& name,
 }
 
 void cContent::AddProperty( const string& name,
-                  const string& value,
-                  eType type,
-                  const vector<string>& opts,
-                  const string& parent )
+                            const string& value,
+                            eType type,
+                            const vector<string>& opts,
+                            const string& parent )
 {
     int pa = FindParent( parent );
     myProp.push_back( cProp( name,value,opts,pa ));
@@ -298,52 +298,79 @@ void cContent::Input( nana::form& fm, int y )
         }
         drawing{ fm } .update();
     }
-    contents.clear();
-}
 
-int cContent::FindCategoryFromY( int y )
-{
-    int targetrow = y / 20;
-    int kprop = -1;
-    for( auto& p : myProp )
+    // safely delete contents of inputbox
+    int kc = -1;
+    for( int c : FindChildren( kprop ) )
     {
-        kprop++;
-        if( p.myRowOnDisplay == targetrow )
-            return kprop;
+        cProp& prop = myProp[ c ];
+        switch ( prop.myType )
+        {
+        case eType::text:
+        case eType::dropdown:
+            kc++;
+            delete ( (inputbox::text*)contents[kc] );
+            contents[kc] = 0;
+            break;
+        case eType::integer:
+            kc++;
+            delete ( (inputbox::integer*)contents[kc] );
+            contents[kc] = 0;
+            break;
+        case eType::real:
+            kc++;
+            delete ( (inputbox::real*)contents[kc] );
+            contents[kc] = 0;
+            break;
+        default:
+            break;
+        }
     }
-    return -1;
 }
 
+        int cContent::FindCategoryFromY( int y )
+        {
+            int targetrow = y / 20;
+            int kprop = -1;
+            for( auto& p : myProp )
+            {
+                kprop++;
+                if( p.myRowOnDisplay == targetrow )
+                    return kprop;
+            }
+            return -1;
+        }
 
-void Test( nana::form& fm )
-{
-    thePropertyGrid.AddCategory( "Signal Processing", "theRoot" );
-    thePropertyGrid.AddCategory( "Cardiac Activity Peak", "Signal Processing" );
-    thePropertyGrid.AddProperty( "Peak Finder", "none", eType::text, "Cardiac Activity Peak" );
-    thePropertyGrid.AddProperty( "Channel", "10", eType::integer, "Cardiac Activity Peak" );
-    thePropertyGrid.AddCategory( "Cardiac Peak Filters", "Signal Processing" );
-    thePropertyGrid.AddProperty( "Polarity", "positive", eType::dropdown, { "positive", "negative" }, "Cardiac Peak Filters" );
-    thePropertyGrid.AddProperty( "Height", "0.8", eType::real, "Cardiac Peak Filters" );
-    thePropertyGrid.AddProperty( "Separation", "100", eType::integer, "Cardiac Peak Filters" );
-    thePropertyGrid.AddProperty( "Width", "50", eType::integer, "Cardiac Peak Filters" );
-    thePropertyGrid.Text( fm );
-    thePropertyGrid.Draw( fm );
-}
-}
-int main()
-{
-    using namespace nana;
-    form fm;
 
-    pgrid::Test( fm );
-
-    fm.show();
-
-    //Show an inputbox when the form is clicked.
-    fm.events().mouse_down([&fm](const nana::arg_mouse& arg)
+        void Test( nana::form& fm )
+        {
+            thePropertyGrid.AddCategory( "Signal Processing", "theRoot" );
+            thePropertyGrid.AddCategory( "Cardiac Activity Peak", "Signal Processing" );
+            thePropertyGrid.AddProperty( "Peak Finder", "none", eType::text, "Cardiac Activity Peak" );
+            thePropertyGrid.AddProperty( "Channel", "10", eType::integer, "Cardiac Activity Peak" );
+            thePropertyGrid.AddCategory( "Cardiac Peak Filters", "Signal Processing" );
+            thePropertyGrid.AddProperty( "Polarity", "positive", eType::dropdown, { "positive", "negative" }, "Cardiac Peak Filters" );
+            thePropertyGrid.AddProperty( "Height", "0.8", eType::real, "Cardiac Peak Filters" );
+            thePropertyGrid.AddProperty( "Separation", "100", eType::integer, "Cardiac Peak Filters" );
+            thePropertyGrid.AddProperty( "Width", "50", eType::integer, "Cardiac Peak Filters" );
+            thePropertyGrid.Text( fm );
+            thePropertyGrid.Draw( fm );
+        }
+    }
+    int main()
     {
-        pgrid::thePropertyGrid.Input( fm, arg.pos.y );
-    });
+        using namespace nana;
+        form fm;
 
-    exec();
-}
+        pgrid::Test( fm );
+
+        fm.show();
+
+        //Show an inputbox when the form is clicked.
+        fm.events().mouse_down([&fm](const nana::arg_mouse& arg)
+        {
+            pgrid::thePropertyGrid.Input( fm, arg.pos.y );
+        });
+
+        exec();
+    }
